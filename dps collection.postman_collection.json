@@ -1,0 +1,126 @@
+{
+	"info": {
+		"_postman_id": "20597892-add4-4cea-8a5d-5a6081ed0903",
+		"name": "dps collection",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "23520581"
+	},
+	"item": [
+		{
+			"name": "proces_start",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "files",
+							"type": "file",
+							"src": [
+								"/D:/ap/gitlab/nr-services-doc/nr-access-token/README.md",
+								"/D:/ap/gitlab/nr-org-mgmt/README.md"
+							]
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:8000/process/start",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"process",
+						"start"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "process_stop",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8000/process/stop/41f293cb198e45b0b368d48716d4c612",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"process",
+						"stop",
+						"41f293cb198e45b0b368d48716d4c612"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "process_get_status",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8000/process/status/41f293cb198e45b0b368d48716d4c612",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"process",
+						"status",
+						"41f293cb198e45b0b368d48716d4c612"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "process_list",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8000/process/list",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"process",
+						"list"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "process_get_reseult",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8000/process/reseults/41f293cb198e45b0b368d48716d4c612",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"process",
+						"reseults",
+						"41f293cb198e45b0b368d48716d4c612"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

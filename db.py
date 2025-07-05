@@ -70,6 +70,14 @@ def get_process(process_id):
     conn.close()
     return mapping(rows)
 
+def get_process_list():
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(f"SELECT * FROM process")
+    rows = cur.fetchall()
+    conn.close()
+    return mapping(rows)
+
 
 def mapping(rows):
     if rows:

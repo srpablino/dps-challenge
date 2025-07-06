@@ -11,28 +11,43 @@ app = FastAPI()
 db.init_db()
 
 
+def _get_file_names(files):
+    filenames = [f.filename for f in files]
+    filenames_count = {}
+    filenames_output = []
+
+    for f in filenames:
+        if f in filenames_count:
+            filenames_count[f] = filenames_count[f] + 1
+        else:
+            filenames_count[f] = 0
+        filenames_output.append(f"{f}{'_('+str(filenames_count[f])+')' if filenames_count.get(f) else ''}")
+    return filenames_output
+
 # Start a new analysis process
 @app.post("/process/start")
 async def start_task(files: List[UploadFile] = File(...)):
     process_id = uuid.uuid4().hex
     process_path = Path( f"{TRIGGER_DIR}/{process_id}/")
     process_path.mkdir(parents=True, exist_ok=True)
+    file_names = _get_file_names(files)
 
     results = []
+    filename_order = 0
     for file in files:
-        file_name = uuid.uuid4().hex
         content = await file.read()
         results.append({
-            "filename": process_path / file_name,
+            "filename": process_path / f"{file_names[filename_order]}",
             "size": len(content),
             "content_type": file.content_type,
             "text": content.decode("utf-8")
         })
+        filename_order+=1
 
     for r in results:
         r["filename"].write_text(r["text"])
 
-    db.create_process(process_id)
+    db.create_process(process_id, len(files))
     return {"message": "Files written and task queued", "process_id": process_id}
 
 # Stop a specific process
@@ -76,7 +91,7 @@ def stop_task(process_id):
     if process_list:
         process = process_list[0]
         if process.status == db.EnumStatus.COMPLETED.value:
-            return process.model_dump()
+            return db.get_results(process_id)
         elif process.status in [db.EnumStatus.RUNNING.value, db.EnumStatus.PENDING.value]:
             raise HTTPException(status_code=202,
                                 detail=f"Process is in state {process.status}, result is not yet available ")

@@ -170,7 +170,7 @@ def mapping(rows):
     return []
 
 
-def _merge_requent_words(merged: dict, words: dict):
+def _merge_frequent_words(merged: dict, words: dict):
     print("merged: ", merged)
     words = {x:v+merged[x] if x in merged else v for x,v in words.items()}
     merged.update(words)
@@ -200,6 +200,6 @@ def mapping_results(results, process):
         out_result.results.total_words+=r["total_words"]
         out_result.results.files_processed.append(r["file_name"])
         out_result.results.files_summary.append(r["summary"])
-        out_result.results.most_frequent_words = _merge_requent_words(out_result.results.most_frequent_words,
+        out_result.results.most_frequent_words = _merge_frequent_words(out_result.results.most_frequent_words,
                                                                       json.loads(r["most_frequent_words"]))
     return out_result.dict()

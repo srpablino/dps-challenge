@@ -30,7 +30,7 @@ async def process_file(p):
             print(f"[DAEMON] writing result for: {process_id} and file {f.name}")
             db.write_result(result)
 
-        db.status_update(process_id, db.EnumStatus.COMPLETED.value)
+        db.status_completed(process_id)
         print(f"[DAEMON] Marked as done: {process_id}")
     except Exception as ex:
         print(f"[DAEMON] error - {ex}")

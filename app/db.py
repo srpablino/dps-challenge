@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
 from typing import Optional, List
-
+import config
 from pydantic import BaseModel
 
 DB_PATH = Path("tasks/data.db")
@@ -68,7 +68,7 @@ def init_db():
             status TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             number_of_files INTEGER,
-            completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            completed_at TIMESTAMP DEFAULT NULL
         );
 
         CREATE TABLE IF NOT EXISTS result (
@@ -116,7 +116,7 @@ def status_update(process_id, status):
 def status_completed(process_id):
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    cur.execute(f"UPDATE process SET status = '{EnumStatus.COMPLETED.value}', completed_at = {datetime.utcnow()} WHERE id = ?", (process_id,))
+    cur.execute(f"UPDATE process SET status = ?, completed_at = ? WHERE id = ?", (EnumStatus.COMPLETED.value, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), process_id,))
     conn.commit()
     conn.close()
 
@@ -202,4 +202,13 @@ def mapping_results(results, process):
         out_result.results.files_summary.append(r["summary"])
         out_result.results.most_frequent_words = _merge_frequent_words(out_result.results.most_frequent_words,
                                                                       json.loads(r["most_frequent_words"]))
+
+    if config.STOP_WORDS:
+        out_result.results.most_frequent_words = dict((x,v) for x,v in out_result.results.most_frequent_words.items() if
+                                                  x not in config.STOP_WORDS)
+    if config.TOP_NUMBER_FREQUENT_WORDS:
+        out_result.results.most_frequent_words = dict(list(out_result.results.most_frequent_words.items())[
+                                                 :min(config.TOP_NUMBER_FREQUENT_WORDS,
+                                                      len(out_result.results.most_frequent_words))])
+
     return out_result.dict()

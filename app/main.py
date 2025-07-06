@@ -90,9 +90,9 @@ def stop_task(process_id):
     process_list = db.get_process(process_id)
     if process_list:
         process = process_list[0]
-        if process.status == db.EnumStatus.COMPLETED.value:
+        if process.status in [db.EnumStatus.COMPLETED.value,db.EnumStatus.RUNNING.value]:
             return db.get_results(process_id)
-        elif process.status in [db.EnumStatus.RUNNING.value, db.EnumStatus.PENDING.value]:
+        elif process.status in [db.EnumStatus.PENDING.value]:
             raise HTTPException(status_code=202,
                                 detail=f"Process is in state {process.status}, result is not yet available ")
         elif process.status in [db.EnumStatus.STOPPED.value, db.EnumStatus.FAILED]:

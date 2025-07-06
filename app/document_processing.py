@@ -4,8 +4,9 @@ import textstat
 from wordfreq import tokenize
 from collections import Counter
 from db import Result
+import config
 
-client = OpenAI(api_key="")
+client = OpenAI(api_key=config.OPEN_AI_KEY)
 
 
 def _summarize_text(text, model="gpt-4"):

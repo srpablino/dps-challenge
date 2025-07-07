@@ -4,7 +4,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 import json
-from logger import setup_logging_json
+from app.shared.logger import setup_logging_json
 
 DB_PATH = Path("tasks/data.db")
 TRIGGER_DIR = Path("tasks/incoming")

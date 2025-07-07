@@ -8,3 +8,4 @@ venv.bak/
 *env.json
 tasks/
 __pycache__/
+.idea/

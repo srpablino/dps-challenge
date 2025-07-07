@@ -1,8 +1,8 @@
 import sqlite3
 from datetime import datetime
-from mapper import mapping, mapping_results
-from models import EnumStatus, Result
-from config import get_logger, DB_PATH
+from app.shared.mapper import mapping, mapping_results
+from app.shared.models import EnumStatus, Result
+from app.shared.config import get_logger, DB_PATH
 
 _logger = get_logger("DB")
 

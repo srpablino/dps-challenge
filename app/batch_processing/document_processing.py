@@ -3,11 +3,10 @@ from openai import OpenAI
 import textstat
 from wordfreq import tokenize
 from collections import Counter
-from models import Result
-from config import get_logger
-import config
+from app.shared.models import Result
+from app.shared.config import get_logger, OPEN_AI_KEY
 
-client = OpenAI(api_key=config.OPEN_AI_KEY)
+client = OpenAI(api_key=OPEN_AI_KEY)
 _logger = get_logger("DOC PROCESSING")
 
 def _summarize_text(text, model="gpt-4"):

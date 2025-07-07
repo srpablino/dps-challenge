@@ -2,9 +2,8 @@ from typing import List
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from pathlib import Path
 import uuid
-import db
-import models
-from config import TRIGGER_DIR, get_logger
+from app.shared import db, models
+from app.shared.config import TRIGGER_DIR, get_logger
 
 _logger = get_logger("API")
 app = FastAPI()

@@ -1,8 +1,8 @@
 import json
 from datetime import timedelta, datetime
 
-import config
-from models import Process, ResultOut
+from app.shared import config
+from app.shared.models import Process, ResultOut
 
 
 def mapping(rows):
@@ -45,7 +45,7 @@ def mapping_results(results, process):
 
     if config.STOP_WORDS:
         out_result.results.most_frequent_words = dict((x,v) for x,v in out_result.results.most_frequent_words.items() if
-                                                  x not in config.STOP_WORDS)
+                                                      x not in config.STOP_WORDS)
     if config.TOP_NUMBER_FREQUENT_WORDS:
         out_result.results.most_frequent_words = dict(list(out_result.results.most_frequent_words.items())[
                                                  :min(config.TOP_NUMBER_FREQUENT_WORDS,

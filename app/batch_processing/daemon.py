@@ -1,9 +1,8 @@
 import asyncio
 import uuid
-import db
-import models
-from document_processing import process_text
-from config import get_logger, TRIGGER_DIR
+from app.shared import db, models
+from app.batch_processing.document_processing import process_text
+from app.shared.config import get_logger, TRIGGER_DIR
 
 _logger = get_logger("DAEMON")
 db.init_db()

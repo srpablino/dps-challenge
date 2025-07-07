@@ -25,7 +25,9 @@ dps-challenge/
 │   ├── api/                # FastAPI application
 │   ├── batch_processing/   # Daemon and processing logic
 │   └── shared/             # Shared utilities, DB, logger, config
+├── files for testing/      # Directory with 10 text files containing more than 500 words each 
 ├── tasks/                  # Directory to be created by the system to store files associated to processes
+├── postman_collection.json # postman collection to test the API
 ├── requirements.txt        # project dependencies
 ├── Dockerfile              # Docker Container Image specification
 ├── README.md

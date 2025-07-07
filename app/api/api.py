@@ -1,4 +1,6 @@
 from typing import List
+
+import aiofiles
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from pathlib import Path
 import uuid
@@ -34,27 +36,33 @@ async def start_task(files: List[UploadFile] = File(...)):
         process_path.mkdir(parents=True, exist_ok=True)
         file_names = _get_file_names(files)
 
-        results = []
         filename_order = 0
         for file in files:
-            content = await file.read()
-            results.append({
-                "filename": process_path / f"{file_names[filename_order]}",
-                "size": len(content),
-                "content_type": file.content_type,
-                "text": content.decode("utf-8")
-            })
-            filename_order+=1
+            # Check declared MIME type
+            if file.content_type != "text/plain":
+                raise HTTPException(status_code=400, detail="Expected plain text file")
 
-        for r in results:
-            r["filename"].write_text(r["text"])
+            async with aiofiles.open(process_path / f"{file_names[filename_order]}", "w", encoding="utf-8") as out_file:
+                while True:
+                    chunk = await file.read(1024)
+                    if not chunk:
+                        break
+                    try:
+                        await out_file.write(chunk.decode("utf-8"))
+                    except UnicodeDecodeError:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"File {file.filename} is not valid UTF-8 text.",
+                        )
+            filename_order += 1
 
         num_files = len(files)
         db.create_process(process_id, num_files)
-
         task_ready_message = "Files written and task queued"
         _logger.info(f"{task_ready_message} PROCCESS_ID: {process_id} NUMBER OF FILES: {num_files}")
         return {"message": "Files written and task queued", "process_id": process_id}
+    except HTTPException:
+        raise
     except Exception as ex:
         _logger.error(f"Error creating new process {process_id} - {ex}")
         raise HTTPException(status_code=500,

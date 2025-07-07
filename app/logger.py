@@ -12,7 +12,7 @@ class JsonFormatter(logging.Formatter):
             "time": self.formatTime(record),
             "level": record.levelname,
             "name": self.name,
-            "message": f"{record.name}--{record.getMessage()}",
+            "message": record.getMessage(),
         }
         return json.dumps(log_record)
 

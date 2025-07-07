@@ -3,7 +3,7 @@ from openai import OpenAI
 import textstat
 from wordfreq import tokenize
 from collections import Counter
-from db import Result
+from models import Result
 from config import get_logger
 import config
 

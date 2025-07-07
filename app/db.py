@@ -1,62 +1,10 @@
-import json
 import sqlite3
-from datetime import datetime, timedelta
-from enum import Enum
-from pathlib import Path
-from typing import Optional, List
-import config
-from pydantic import BaseModel
+from datetime import datetime
+from mapper import mapping, mapping_results
+from models import EnumStatus, Result
 from config import get_logger, DB_PATH
 
 _logger = get_logger("DB")
-
-class ResultDetailsOut(BaseModel):
-    total_words: Optional[int] = 0
-    total_lines: Optional[int] = 0
-    total_chars: Optional[int] = 0
-    most_frequent_words: Optional[dict] = {}
-    files_processed: Optional[List[str]] = []
-    files_summary: Optional[List[str]] = []
-
-class ProgressOut(BaseModel):
-    total_files: Optional[int] = 0
-    processed_files: Optional[int] = 0
-    percentage: Optional[float] = 0.0
-
-class ResultOut(BaseModel):
-    process_id: Optional[str] = None
-    status: Optional[str] = None
-    progress: Optional[ProgressOut] = ProgressOut()
-    started_at: Optional[datetime] = None
-    results: Optional[ResultDetailsOut] = ResultDetailsOut()
-    estimated_completion: Optional[datetime] = None
-
-
-class Result(BaseModel):
-    id: Optional[str] = None
-    process_id: Optional[str] = None
-    file_name: Optional[str] = None
-    total_words: Optional[int] = None
-    total_lines: Optional[int] = None
-    total_chars: Optional[int] = None
-    most_frequent_words: Optional[int] = None
-    summary: Optional[str] = None
-
-class Process(BaseModel):
-    id: str
-    status: str
-    created_at: Optional[datetime] = None
-    number_of_files: Optional[int] = 0
-    completed_at: Optional[datetime] = None
-
-
-class EnumStatus(Enum):
-	PENDING = "pending"
-	RUNNING = "running"
-	PAUSED = "paused"
-	COMPLETED = "completed"
-	FAILED = "failed"
-	STOPPED = "stopped"
 
 
 def init_db():
@@ -108,10 +56,10 @@ def get_pending_processes():
     try:
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
-        cur.execute(f"SELECT * FROM process WHERE status = '{EnumStatus.PENDING.value}'")
+        cur.execute(f"SELECT * FROM process WHERE status = ?", (EnumStatus.PENDING.value,))
         rows = cur.fetchall()
         conn.close()
-        return _mapping(rows)
+        return mapping(rows)
     except Exception as ex:
         _logger.error(f"Error getting pending processes - {ex}")
         raise
@@ -120,7 +68,7 @@ def status_update(process_id, status):
     try:
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
-        cur.execute(f"UPDATE process SET status = '{status}' WHERE id = ?", (process_id,))
+        cur.execute(f"UPDATE process SET status = ? WHERE id = ?", (status, process_id,))
         conn.commit()
         conn.close()
     except Exception as ex:
@@ -162,7 +110,7 @@ def get_process(process_id):
         cur.execute(f"SELECT * FROM process where id = ?", (process_id,))
         rows = cur.fetchall()
         conn.close()
-        return _mapping(rows)
+        return mapping(rows)
     except Exception as ex:
         _logger.error(f"Error getting process {process_id} from db - {ex}")
         raise
@@ -175,7 +123,7 @@ def get_process_list():
         cur.execute(f"SELECT * FROM process")
         rows = cur.fetchall()
         conn.close()
-        return _mapping(rows)
+        return mapping(rows)
     except Exception as ex:
         _logger.error(f"Error getting process list from db - {ex}")
         raise
@@ -195,55 +143,7 @@ def get_results(process_id):
             process = process[0]
         else:
             raise Exception("Related process not found")
-        return _mapping_results(rows, process)
+        return mapping_results(rows, process)
     except Exception as ex:
         _logger.error(f"Error getting results for {process_id} from db - {ex}")
         raise
-
-def _mapping(rows):
-    if rows:
-        return [Process(id=x[0], status=x[1], created_at=x[2], number_of_files=x[3], completed_at=x[4]) for x in rows]
-    return []
-
-
-def _merge_frequent_words(merged: dict, words: dict):
-    words = {x:v+merged[x] if x in merged else v for x,v in words.items()}
-    merged.update(words)
-    return dict(sorted(merged.items(), key=lambda item: item[1], reverse=True))
-
-
-def _mapping_results(results, process):
-    out_result = ResultOut()
-    out_result.progress.processed_files = len(results)
-    out_result.progress.total_files = process.number_of_files
-    out_result.progress.percentage = len(results) / process.number_of_files
-
-    if process.completed_at:
-        out_result.estimated_completion = process.completed_at
-    else:
-        time_taken_until = (datetime.utcnow().timestamp() - process.created_at.timestamp())\
-                           / out_result.progress.percentage
-        out_result.estimated_completion = process.created_at + timedelta(seconds=time_taken_until)
-
-    out_result.status = process.status
-    out_result.process_id = process.id
-    out_result.started_at = process.created_at
-
-    for r in results:
-        out_result.results.total_lines+=r["total_lines"]
-        out_result.results.total_chars+=r["total_chars"]
-        out_result.results.total_words+=r["total_words"]
-        out_result.results.files_processed.append(r["file_name"])
-        out_result.results.files_summary.append(r["summary"])
-        out_result.results.most_frequent_words = _merge_frequent_words(out_result.results.most_frequent_words,
-                                                                      json.loads(r["most_frequent_words"]))
-
-    if config.STOP_WORDS:
-        out_result.results.most_frequent_words = dict((x,v) for x,v in out_result.results.most_frequent_words.items() if
-                                                  x not in config.STOP_WORDS)
-    if config.TOP_NUMBER_FREQUENT_WORDS:
-        out_result.results.most_frequent_words = dict(list(out_result.results.most_frequent_words.items())[
-                                                 :min(config.TOP_NUMBER_FREQUENT_WORDS,
-                                                      len(out_result.results.most_frequent_words))])
-
-    return out_result.dict()

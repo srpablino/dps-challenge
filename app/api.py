@@ -3,6 +3,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from pathlib import Path
 import uuid
 import db
+import models
 from config import TRIGGER_DIR, get_logger
 
 _logger = get_logger("API")
@@ -69,8 +70,8 @@ def stop_task(process_id):
         process_list = db.get_process(process_id)
         if process_list:
             process = process_list[0]
-            if process.status in [db.EnumStatus.PENDING.value, db.EnumStatus.RUNNING.value]:
-                db.status_update(process_id, db.EnumStatus.STOPPED.value)
+            if process.status in [models.EnumStatus.PENDING.value, models.EnumStatus.RUNNING.value]:
+                db.status_update(process_id, models.EnumStatus.STOPPED.value)
                 _logger.info(f"Process {process_id} stopped")
                 return {"message": "Process stopped", "process_id": process_id}
             else:
@@ -128,15 +129,15 @@ def stop_task(process_id):
         process_list = db.get_process(process_id)
         if process_list:
             process = process_list[0]
-            if process.status in [db.EnumStatus.COMPLETED.value,db.EnumStatus.RUNNING.value]:
+            if process.status in [models.EnumStatus.COMPLETED.value,models.EnumStatus.RUNNING.value]:
                 result_out = db.get_results(process_id)
                 _logger.info(f"Success returning results for process {process_id}")
                 return result_out
-            elif process.status in [db.EnumStatus.PENDING.value]:
+            elif process.status in [models.EnumStatus.PENDING.value]:
                 _logger.error(f"Process {process_id} is in state {process.status}, result is not yet available ")
                 raise HTTPException(status_code=202,
                                     detail=f"Process is in state {process.status}, result is not yet available ")
-            elif process.status in [db.EnumStatus.STOPPED.value, db.EnumStatus.FAILED.value]:
+            elif process.status in [models.EnumStatus.STOPPED.value, models.EnumStatus.FAILED.value]:
                 _logger.error(f"Error: Process {process_id} finished with state {process.status}")
                 return {"detail": f"Error: Process finished with state {process.status}"}
             else:

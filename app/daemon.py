@@ -1,7 +1,7 @@
 import asyncio
-import logging
 import uuid
 import db
+import models
 from document_processing import process_text
 from config import get_logger, TRIGGER_DIR
 
@@ -15,19 +15,19 @@ def update_process_status(p):
         file_path = TRIGGER_DIR / process_id
         if not file_path.exists():
             _logger.error(f"Process not found: {process_id}")
-            db.status_update(process_id, db.EnumStatus.FAILED.value)
+            db.status_update(process_id, models.EnumStatus.FAILED.value)
             return
 
         _logger.info(f"Processing: {process_id}")
-        db.status_update(process_id, db.EnumStatus.RUNNING.value)
+        db.status_update(process_id, models.EnumStatus.RUNNING.value)
     except Exception as ex:
         _logger.error(f"error - {ex}")
-        db.status_update(p.id, db.EnumStatus.FAILED.value)
+        db.status_update(p.id, models.EnumStatus.FAILED.value)
 
 
 def _process_status_running(process_id):
     process = db.get_process(process_id)
-    if not process or process[0].status != db.EnumStatus.RUNNING.value:
+    if not process or process[0].status != models.EnumStatus.RUNNING.value:
         state = process[0].status if process else "UNKNOWN"
         _logger.error(f"Process can't continue, the status has ben externally updataed to {state}")
         return False
@@ -61,7 +61,7 @@ async def process_file(p):
         _logger.info(f"Marked as done: {process_id}")
     except Exception as ex:
         _logger.error(f"error - {ex}")
-        await asyncio.to_thread(db.status_update,p.id, db.EnumStatus.FAILED.value)
+        await asyncio.to_thread(db.status_update,p.id, models.EnumStatus.FAILED.value)
 
 async def run_daemon():
     iteration = 0

@@ -9,7 +9,7 @@ _logger = get_logger("DAEMON")
 db.init_db()
 
 
-async def update_process_status(p):
+def update_process_status(p):
     try:
         process_id = p.id
         file_path = TRIGGER_DIR / process_id
@@ -38,37 +38,43 @@ async def process_file(p):
     try:
         process_id = p.id
         file_path = TRIGGER_DIR / process_id
+        process_running = True
         for f in file_path.iterdir():
             _logger.info(f"Processing {process_id} - file {f.name}...")
             content = f.read_text()
-            result = process_text(content)
+            result = await asyncio.to_thread(process_text, content)
             result.id = uuid.uuid4().hex
             result.process_id = p.id
             result.file_name = f.name
             _logger.info(f"Writing result for: {process_id} and file {f.name}")
-            if _process_status_running(process_id):
-                db.write_result(result)
+            if await asyncio.to_thread(_process_status_running, process_id):
+                await asyncio.to_thread(db.write_result, result)
             else:
-                return
+                process_running = False
+                break
 
-        if _process_status_running(process_id):
-            db.status_completed(process_id)
+        if process_running:
+            await asyncio.to_thread(db.status_completed, process_id)
         else:
             return
 
         _logger.info(f"Marked as done: {process_id}")
     except Exception as ex:
         _logger.error(f"error - {ex}")
-        db.status_update(p.id, db.EnumStatus.FAILED.value)
+        await asyncio.to_thread(db.status_update,p.id, db.EnumStatus.FAILED.value)
 
 async def run_daemon():
-    _logger.info("Watching DB for pending files...")
+    iteration = 0
     while True:
-        pending = db.get_pending_processes()
+        if iteration % 12 == 0:
+            _logger.info("Watching DB for pending files...")
+            iteration = 0
+        pending = await asyncio.to_thread(db.get_pending_processes)
         for p in pending:
-            await update_process_status(p)
+            await asyncio.to_thread(update_process_status, p)
             asyncio.create_task(process_file(p))
-        await asyncio.sleep(3)
+        await asyncio.sleep(5)
+        iteration+=1
 
 
 if __name__ == "__main__":

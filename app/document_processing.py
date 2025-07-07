@@ -4,10 +4,11 @@ import textstat
 from wordfreq import tokenize
 from collections import Counter
 from db import Result
+from config import get_logger
 import config
 
 client = OpenAI(api_key=config.OPEN_AI_KEY)
-
+_logger = get_logger("DOC PROCESSING")
 
 def _summarize_text(text, model="gpt-4"):
     response = client.chat.completions.create(
@@ -38,10 +39,16 @@ def _get_text_stats(text):
 
 
 def process_text(text):
-    result = _get_text_stats(text)
+    try:
+        result = _get_text_stats(text)
+    except Exception as ex:
+        _logger.error(f"Error getting text stats for file - {ex}")
+        raise
+
     try:
         result.summary = _summarize_text(text)
     except Exception as ex:
         print(f"Error: summarization not supported: - {ex}")
         result.summary = "ERROR: NOT SUPPORTED"
+
     return result

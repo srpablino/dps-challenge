@@ -1,46 +1,72 @@
 import asyncio
+import logging
 import uuid
-from pathlib import Path
 import db
 from document_processing import process_text
+from config import get_logger, TRIGGER_DIR
 
-
-TRIGGER_DIR = Path("tasks/incoming")
+_logger = get_logger("DAEMON")
 db.init_db()
+
+
+async def update_process_status(p):
+    try:
+        process_id = p.id
+        file_path = TRIGGER_DIR / process_id
+        if not file_path.exists():
+            _logger.error(f"Process not found: {process_id}")
+            db.status_update(process_id, db.EnumStatus.FAILED.value)
+            return
+
+        _logger.info(f"Processing: {process_id}")
+        db.status_update(process_id, db.EnumStatus.RUNNING.value)
+    except Exception as ex:
+        _logger.error(f"error - {ex}")
+        db.status_update(p.id, db.EnumStatus.FAILED.value)
+
+
+def _process_status_running(process_id):
+    process = db.get_process(process_id)
+    if not process or process[0].status != db.EnumStatus.RUNNING.value:
+        state = process[0].status if process else "UNKNOWN"
+        _logger.error(f"Process can't continue, the status has ben externally updataed to {state}")
+        return False
+    return True
 
 
 async def process_file(p):
     try:
         process_id = p.id
         file_path = TRIGGER_DIR / process_id
-        if not file_path.exists():
-            print(f"[DAEMON] Process not found: {process_id}")
-            db.status_update(process_id, db.EnumStatus.FAILED.value)
-            return
-
-        print(f"[DAEMON] Processing: {process_id}")
-        db.status_update(process_id, db.EnumStatus.RUNNING.value)
         for f in file_path.iterdir():
-            print(f"[DAEMON] Process {process_id} - file {f.name}...")
+            _logger.info(f"Processing {process_id} - file {f.name}...")
             content = f.read_text()
             result = process_text(content)
             result.id = uuid.uuid4().hex
             result.process_id = p.id
             result.file_name = f.name
-            print(f"[DAEMON] writing result for: {process_id} and file {f.name}")
-            db.write_result(result)
+            _logger.info(f"Writing result for: {process_id} and file {f.name}")
+            if _process_status_running(process_id):
+                db.write_result(result)
+            else:
+                return
 
-        db.status_completed(process_id)
-        print(f"[DAEMON] Marked as done: {process_id}")
+        if _process_status_running(process_id):
+            db.status_completed(process_id)
+        else:
+            return
+
+        _logger.info(f"Marked as done: {process_id}")
     except Exception as ex:
-        print(f"[DAEMON] error - {ex}")
+        _logger.error(f"error - {ex}")
         db.status_update(p.id, db.EnumStatus.FAILED.value)
 
 async def run_daemon():
-    print("[DAEMON] Watching DB for pending files...")
+    _logger.info("Watching DB for pending files...")
     while True:
         pending = db.get_pending_processes()
         for p in pending:
+            await update_process_status(p)
             asyncio.create_task(process_file(p))
         await asyncio.sleep(3)
 

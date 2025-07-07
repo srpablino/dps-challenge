@@ -12,6 +12,7 @@ app = FastAPI()
 db.init_db()
 
 
+# used to write file with names filename_(n)in case uploaded file names are equal for more than 1 file
 def _get_file_names(files):
     filenames = [f.filename for f in files]
     filenames_count = {}
@@ -42,6 +43,7 @@ async def start_task(files: List[UploadFile] = File(...)):
             if file.content_type != "text/plain":
                 raise HTTPException(status_code=400, detail="Expected plain text file")
 
+            # read received files in chunks
             async with aiofiles.open(process_path / f"{file_names[filename_order]}", "w", encoding="utf-8") as out_file:
                 while True:
                     chunk = await file.read(1024)
@@ -50,6 +52,7 @@ async def start_task(files: List[UploadFile] = File(...)):
                     try:
                         await out_file.write(chunk.decode("utf-8"))
                     except UnicodeDecodeError:
+                        # reject file/process if file cannot be decoded
                         raise HTTPException(
                             status_code=400,
                             detail=f"File {file.filename} is not valid UTF-8 text.",

@@ -9,6 +9,8 @@ from app.shared.config import get_logger, OPEN_AI_KEY
 client = OpenAI(api_key=OPEN_AI_KEY)
 _logger = get_logger("DOC PROCESSING")
 
+
+# openAI API text summarization
 def _summarize_text(text, model="gpt-4"):
     response = client.chat.completions.create(
         model=model,
@@ -23,11 +25,13 @@ def _summarize_text(text, model="gpt-4"):
     return response.choices[0].message.content
 
 
+# extract words from text and group them
 def _get_word_frequencies(text):
     tokens = tokenize(text, 'en')  # English tokenizer
     return json.dumps(Counter(tokens))
 
 
+# extraction of text statistics
 def _get_text_stats(text):
     result = Result()
     result.total_words = textstat.lexicon_count(text)

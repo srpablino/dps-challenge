@@ -17,12 +17,14 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(log_record)
 
 
+# create logs for specific parts of the applications (name= api, db, daemon, file processing)
 def setup_logging_json(name):
 
     root_logger = logging.getLogger(name)
     root_logger.setLevel(logging.INFO)
     root_logger.propagate = False
 
+    # logs will be printed in the stdout and also recorded in files
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(JsonFormatter(name))
     root_logger.addHandler(handler)
@@ -31,6 +33,7 @@ def setup_logging_json(name):
     file_handler.setFormatter(JsonFormatter(name))
     root_logger.addHandler(file_handler)
 
+    # default logging from FASTAPI will be cleared and be setup to use our logging format for stdout and file
     for uvicorn_logger_name in ("uvicorn", "uvicorn.error", "uvicorn.access"):
         logger = logging.getLogger(uvicorn_logger_name)
         logger.setLevel(logging.INFO)

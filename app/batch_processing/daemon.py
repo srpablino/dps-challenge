@@ -38,6 +38,7 @@ async def process_file(p):
         process_id = p.id
         file_path = TRIGGER_DIR / process_id
         process_running = True
+        # read and process files for a given process
         for f in file_path.iterdir():
             _logger.info(f"Processing {process_id} - file {f.name}...")
             content = f.read_text()
@@ -46,12 +47,15 @@ async def process_file(p):
             result.process_id = p.id
             result.file_name = f.name
             _logger.info(f"Writing result for: {process_id} and file {f.name}")
+
+            # continue only if the process status is 'running' otherwise means it was stopped or failed
             if await asyncio.to_thread(_process_status_running, process_id):
                 await asyncio.to_thread(db.write_result, result)
             else:
                 process_running = False
                 break
 
+        # once all files were processed, update the status to complete
         if process_running:
             await asyncio.to_thread(db.status_completed, process_id)
         else:
@@ -62,6 +66,7 @@ async def process_file(p):
         _logger.error(f"error - {ex}")
         await asyncio.to_thread(db.status_update,p.id, models.EnumStatus.FAILED.value)
 
+# daemon process monitoring db and files for new processing requests in a async fashion
 async def run_daemon():
     iteration = 0
     while True:

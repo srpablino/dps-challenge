@@ -4,19 +4,21 @@ from datetime import timedelta, datetime
 from app.shared import config
 from app.shared.models import Process, ResultOut
 
-
+# map DB result for stored process to a Process object for easier object manipulation
 def mapping(rows):
     if rows:
         return [Process(id=x[0], status=x[1], created_at=x[2], number_of_files=x[3], completed_at=x[4]) for x in rows]
     return []
 
 
+# merge frequent words results from the processing of different files in the smae process
 def _merge_frequent_words(merged: dict, words: dict):
     words = {x:v+merged[x] if x in merged else v for x,v in words.items()}
     merged.update(words)
     return dict(sorted(merged.items(), key=lambda item: item[1], reverse=True))
 
 
+# map stored results to the required output structure
 def mapping_results(results, process):
     out_result = ResultOut()
     out_result.progress.processed_files = len(results)
